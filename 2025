@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politischer Partei-Matcher</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fff5db; }
+        .container { max-width: 600px; margin: auto; padding: 20px; text-align: center; }
+        .question { margin-bottom: 40px; } /* 增大每个问题之间的行间距 */
+        .question-header { font-weight: bold; margin-bottom: 10px; }
+        .question-text { font-size: 18px; margin-bottom: 20px; }
+        .options { display: flex; justify-content: center; gap: 15px; } /* 选项水平排列并增加间距 */
+        .options button { 
+            background-color: #ffb700; 
+            border: none; 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            font-size: 16px;
+            color: white;
+            border-radius: 5px;
+        }
+        .options button.selected { background-color: #808080; }
+        .skip { float: right; color: black; font-size: 14px; cursor: pointer; padding: 5px 10px; background-color: #ffb700; border-radius: 5px; }
+        .skip.selected { background-color: #808080; color: white; }
+        #result { margin-top: 20px; font-weight: bold; }
+        .calculate-button {
+            display: block;
+            margin: 30px auto;
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #ff8800;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .calculate-button:hover {
+            background-color: #cc6d00;
+        }
+    </style>
+</head>
+<body>
+    <div>如果你在小程序中打开该网页，请返回上一步，复制链接后重新在浏览器中打开</div>
+    <div class="container">
+        <div id="quiz"></div>
+        <button class="calculate-button" onclick="calculateMatch()">计算结果</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const questions = [{id: 1, text: '应允许欧盟收取自己的税款。'}, 
+                           {id: 2, text: '具有燃烧发动机的车辆也应该能够在2035年后重新在欧盟中批准。'}, 
+                           {id: 3, text: '欧盟应该在地中海建立自己的海上救援。'}, 
+                           {id: 4, text: '允许乌克兰成为欧盟的成员国。'}, 
+                           {id: 5, text: '欧盟应优先支持生态农业。'}, 
+                           {id: 6, text: '在德国，欧元将被本国货币取代。'}, 
+                           {id: 7, text: '欧盟成员国应除了“女性”和“男性”之外，还可以在护照中进入其他性别认同。'}, 
+                           {id: 8, text: '在不会危及种群数量的地区，应允许猎杀狼群。'}, 
+                           {id: 9, text: '在欧盟建造新的住宅建筑时，应强制使用光伏系统。'}, 
+                           {id: 10, text: '欧盟的更多外交政策决策应通过多数表决，而非一致同意。'}, 
+                           {id: 11, text: '在欧盟境内的航班，航空燃油（煤油）应免税。'}, 
+                           {id: 12, text: '欧洲共同警察机构 Europol 应获得更多权限。'}, 
+                           {id: 13, text: '欧盟应加大对跨国、多语言的公共广播服务的财政支持力度。'}, 
+                           {id: 14, text: '欧盟应放弃其实现气候中立的目标。'}, 
+                           {id: 15, text: '在欧洲议会的选举中，当事方应继续能够自由地决定席位的性别比例。'}, 
+                           {id: 16, text: '欧盟应对成员国的社会基本保障水平提出要求。。'}, 
+                           {id: 17, text: '社交网络的运营商应自由决定如何应对其平台上的虚假信息。'}, 
+                           {id: 18, text: '在欧盟，更多的区域应被指定为自然保护区。'}, 
+                           {id: 19, text: '对于违反欧盟规则和价值观的成员国，欧盟应继续扣留其资助资金。'}, 
+                           {id: 20, text: '允许欧盟为乌克兰提供了更多武器。'}, 
+                           {id: 21, text: '欧盟水域允许捕捞的鱼类数量应减少。'}, 
+                           {id: 22, text: '欧盟对中国电动汽车的进口关税将增加。'}, 
+                           {id: 23, text: '欧盟应推动在所有成员国使堕胎合法化且不受惩罚。'}, 
+                           {id: 24, text: '欧盟各成员国之间应重新实施长期边境管控'}, 
+                           {id: 25, text: '加入欧盟的新国家必须通过所有成员国的公投确认。'}, 
+                           {id: 26, text: '欧盟应允许种植更多的基因改造植物品种。'}, 
+                           {id: 27, text: '针对女性的性别暴力应被认定为全欧洲范围内的庇护理由'}, 
+                           {id: 28, text: '在欧盟内，受版权保护的作品（如照片、音乐、文学）应可供非商业用途免费使用'}, 
+                           {id: 29, text: '欧盟应减少对俄罗斯的制裁。'}, 
+                           {id: 30, text: '经济条件较差的学生，其 Erasmus+ 留学奖学金应提高。'}, 
+                           {id: 31, text: '欧盟应继续将核能视为可持续能源。'}, 
+                           {id: 32, text: '欧盟应简化技术工人的移民流程。'}, 
+                           {id: 33, text: '欧盟应对欧洲关键基础设施领域的外国投资进行更严格的限制。'}, 
+                           {id: 34, text: '欧洲委员会主席应由欧盟公民直接选举产生。'}, 
+                           {id: 35, text: '在欧盟，企业应支付更多的二氧化碳排放费用。'}, 
+                           {id: 36, text: '庇护申请人应在进入欧盟边界之前提交申请，并在边境等待审批结果。'}, 
+                           {id: 37, text: '欧盟应继续投资于共同的欧洲防务项目。'}, 
+                           {id: 38, text: '欧洲议会应继续在欧盟内部发挥核心作用。'}];
+        
+        const parties = {'AfD': {1: -1,
+  2: 1,
+  3: -1,
+  4: -1,
+  5: -1,
+  6: 1,
+  7: -1,
+  8: 1,
+  9: -1,
+  10: -1,
+  11: 1,
+  12: -1,
+  13: -1,
+  14: 1,
+  15: 1,
+  16: -1,
+  17: 1,
+  18: -1,
+  19: -1,
+  20: -1,
+  21: -1,
+  22: -1,
+  23: -1,
+  24: 1,
+  25: 1,
+  26: -1,
+  27: -1,
+  28: 0,
+  29: 1,
+  30: 0,
+  31: 1,
+  32: -1,
+  33: 1,
+  34: 1,
+  35: -1,
+  36: 1,
+  37: -1,
+  38: -1},
+ 'CDU / CSU': {1: -1,
+  2: 1,
+  3: -1,
+  4: 1,
+  5: -1,
+  6: -1,
+  7: -1,
+  8: 1,
+  9: -1,
+  10: 1,
+  11: 1,
+  12: 1,
+  13: -1,
+  14: -1,
+  15: 1,
+  16: -1,
+  17: -1,
+  18: 0,
+  19: 1,
+  20: 1,
+  21: -1,
+  22: 1,
+  23: -1,
+  24: 1,
+  25: -1,
+  26: 0,
+  27: 1,
+  28: -1,
+  29: -1,
+  30: 1,
+  31: 1,
+  32: 1,
+  33: 1,
+  34: -1,
+  35: 1,
+  36: 1,
+  37: 1,
+  38: 1},
+ 'DIE LINKE': {1: 1,
+  2: -1,
+  3: 1,
+  4: -1,
+  5: 1,
+  6: -1,
+  7: 1,
+  8: -1,
+  9: 1,
+  10: -1,
+  11: -1,
+  12: -1,
+  13: 1,
+  14: -1,
+  15: -1,
+  16: 1,
+  17: -1,
+  18: 1,
+  19: 1,
+  20: -1,
+  21: 1,
+  22: -1,
+  23: 1,
+  24: -1,
+  25: 1,
+  26: -1,
+  27: 1,
+  28: 1,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: 1,
+  35: 1,
+  36: -1,
+  37: -1,
+  38: 1},
+ 'Die PARTEI': {1: -1,
+  2: -1,
+  3: 1,
+  4: 0,
+  5: 1,
+  6: -1,
+  7: 1,
+  8: -1,
+  9: 1,
+  10: 1,
+  11: -1,
+  12: -1,
+  13: 1,
+  14: -1,
+  15: 1,
+  16: 1,
+  17: 1,
+  18: 1,
+  19: 1,
+  20: 0,
+  21: 1,
+  22: 1,
+  23: 1,
+  24: -1,
+  25: 1,
+  26: -1,
+  27: 1,
+  28: 1,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: 1,
+  35: 1,
+  36: -1,
+  37: -1,
+  38: 1},
+ 'FDP': {1: -1,
+  2: 1,
+  3: 1,
+  4: 1,
+  5: -1,
+  6: -1,
+  7: 1,
+  8: 1,
+  9: -1,
+  10: 1,
+  11: 1,
+  12: 1,
+  13: -1,
+  14: -1,
+  15: 1,
+  16: -1,
+  17: -1,
+  18: -1,
+  19: 1,
+  20: 1,
+  21: -1,
+  22: -1,
+  23: 1,
+  24: -1,
+  25: -1,
+  26: 1,
+  27: 1,
+  28: 0,
+  29: -1,
+  30: 1,
+  31: 1,
+  32: 1,
+  33: 1,
+  34: -1,
+  35: 0,
+  36: 1,
+  37: 1,
+  38: 1},
+ 'GRÜNE': {1: 1,
+  2: -1,
+  3: 1,
+  4: 1,
+  5: 1,
+  6: -1,
+  7: 1,
+  8: -1,
+  9: 1,
+  10: 1,
+  11: -1,
+  12: 1,
+  13: 1,
+  14: -1,
+  15: -1,
+  16: 1,
+  17: -1,
+  18: 1,
+  19: 1,
+  20: 1,
+  21: 1,
+  22: -1,
+  23: 1,
+  24: -1,
+  25: -1,
+  26: -1,
+  27: 1,
+  28: 0,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: -1,
+  35: 1,
+  36: -1,
+  37: 1,
+  38: 1},
+ 'PIRATEN': {1: -1,
+  2: -1,
+  3: -1,
+  4: 1,
+  5: 1,
+  6: -1,
+  7: 1,
+  8: -1,
+  9: 1,
+  10: 1,
+  11: -1,
+  12: -1,
+  13: 1,
+  14: -1,
+  15: 1,
+  16: 1,
+  17: -1,
+  18: 1,
+  19: 1,
+  20: 1,
+  21: 1,
+  22: 1,
+  23: 1,
+  24: -1,
+  25: -1,
+  26: -1,
+  27: 1,
+  28: 1,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: 1,
+  35: 1,
+  36: -1,
+  37: 1,
+  38: 1},
+ 'SPD': {1: -1,
+  2: -1,
+  3: 1,
+  4: 1,
+  5: -1,
+  6: -1,
+  7: 1,
+  8: 0,
+  9: -1,
+  10: 1,
+  11: -1,
+  12: 1,
+  13: -1,
+  14: -1,
+  15: -1,
+  16: 1,
+  17: -1,
+  18: 1,
+  19: 1,
+  20: 1,
+  21: 1,
+  22: 1,
+  23: 1,
+  24: -1,
+  25: -1,
+  26: 1,
+  27: 1,
+  28: 1,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: -1,
+  35: 1,
+  36: 1,
+  37: 1,
+  38: 1},
+ 'Volt': {1: 1,
+  2: -1,
+  3: 1,
+  4: 1,
+  5: 1,
+  6: -1,
+  7: 1,
+  8: -1,
+  9: 1,
+  10: 1,
+  11: -1,
+  12: 1,
+  13: 1,
+  14: -1,
+  15: -1,
+  16: 1,
+  17: -1,
+  18: 1,
+  19: 1,
+  20: 1,
+  21: 1,
+  22: 1,
+  23: 1,
+  24: -1,
+  25: -1,
+  26: 1,
+  27: 1,
+  28: 1,
+  29: -1,
+  30: 1,
+  31: -1,
+  32: 1,
+  33: 1,
+  34: 1,
+  35: 1,
+  36: -1,
+  37: 1,
+  38: 1}};
+
+        let userResponses = {};
+
+        function renderQuiz() {
+            let quizContainer = document.getElementById("quiz");
+            quizContainer.innerHTML = "";
+            questions.forEach(q => {
+                let questionDiv = document.createElement("div");
+                questionDiv.classList.add("question");
+                questionDiv.innerHTML = `<div class='question-header'>${q.id}</div>
+                                         <div class='question-text'>${q.text}</div>`;
+                let optionsDiv = document.createElement("div");
+                optionsDiv.classList.add("options");
+                ["赞成", "中立", "反对"].forEach((option, index) => {
+                    let btn = document.createElement("button");
+                    btn.innerText = option;
+                    btn.onclick = () => {
+                        userResponses[q.id] = index === 0 ? 1 : index === 1 ? 0 : -1;
+                        highlightSelected(optionsDiv, btn);
+                    };
+                    optionsDiv.appendChild(btn);
+                });
+                let skipLink = document.createElement("div");
+                skipLink.classList.add("skip");
+                skipLink.innerText = "跳过 →";
+                skipLink.onclick = () => {
+                    userResponses[q.id] = null;
+                    highlightSelectedSkip(skipLink);
+                };
+                questionDiv.appendChild(optionsDiv);
+                questionDiv.appendChild(skipLink);
+                quizContainer.appendChild(questionDiv);
+            });
+        }
+
+        function highlightSelected(optionsDiv, selectedButton) {
+            Array.from(optionsDiv.children).forEach(btn => btn.classList.remove("selected"));
+            selectedButton.classList.add("selected");
+        }
+
+        function highlightSelectedSkip(skipButton) {
+            skipButton.classList.toggle("selected");
+        }
+
+        function calculateMatch() {
+            let results = {};
+            for (let party in parties) {
+                results[party] = 0;
+                let totalQuestions = 0;
+                for (let qId in userResponses) {
+                    if (userResponses[qId] !== null) {
+                        totalQuestions++;
+                        let userAnswer = userResponses[qId];
+                        let partyAnswer = parties[party][qId];
+                        
+                        if (userAnswer === partyAnswer) {
+                            results[party] += 2; // 完全匹配得2分
+                        } else if (userAnswer === 0 || partyAnswer === 0) {
+                            results[party] += 1; // 一方为中立得1分
+                        }
+                    }
+                }
+                results[party] = Math.round((results[party] / (totalQuestions * 2)) * 100); // 归一化为百分比
+            }
+            let sortedResults = Object.entries(results).sort((a, b) => b[1] - a[1]);
+            let resultText = "<p>匹配度:</p><ul>";
+            sortedResults.forEach(([party, score]) => {
+                resultText += `<li><strong>${party}</strong>: ${score}%</li>`;
+            });
+            resultText += "</ul>";
+            document.getElementById("result").innerHTML = resultText;
+        }
+
+        renderQuiz();
+    </script>
+</body>
+</html>
